@@ -54,6 +54,8 @@ import org.apache.pdfbox.pdmodel.interactive.digitalsignature.SignatureInterface
 
 public class Verificator {
 
+    
+  private String trustedStore = "/etc/ssl/certs/java/cacerts";
   private PrivateKey privKey;
   private Certificate cert;
 
@@ -105,9 +107,13 @@ public class Verificator {
     return json;
   }
 
+  public void setTrustedStore(final String path) {
+    trustedStore = path;
+  }
+
   private StringBuilder checkKeyStore(final X509Certificate cert, StringBuilder json) throws KeyStoreException, IOException, NoSuchAlgorithmException, FileNotFoundException, CertificateException{
     KeyStore store = KeyStore.getInstance("JKS");
-    FileInputStream fis = new FileInputStream("/etc/ssl/certs/java/cacerts");
+    FileInputStream fis = new FileInputStream(trustedStore);
     store.load(fis, null);
     fis.close();
     String issuer = cert.getIssuerX500Principal().getName();
