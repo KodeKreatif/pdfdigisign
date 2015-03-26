@@ -54,10 +54,12 @@ import org.apache.pdfbox.pdmodel.interactive.digitalsignature.SignatureInterface
 
 public class Verificator {
 
+  private PDFDocumentInfo info = new PDFDocumentInfo();
     
   private String trustedStore = "/etc/ssl/certs/java/cacerts";
   private PrivateKey privKey;
   private Certificate cert;
+  private String path;
 
   // http://stackoverflow.com/a/9855338
   private static String bytesToHex(byte[] bytes) {
@@ -71,7 +73,8 @@ public class Verificator {
     return new String(hexChars);
   }
 
-  private StringBuilder checkRevocation(final X509Certificate caCert, final X509Certificate cert, StringBuilder json) {
+  private CertInfo checkRevocation(final X509Certificate caCert, final X509Certificate cert, CertInfo certInfo) {
+    System.setProperty("com.sun.security.enableCRLDP", "true");
     try {
       Vector<X509Certificate> certs = new Vector<X509Certificate>();
       certs.add(cert);
@@ -94,24 +97,24 @@ public class Verificator {
           DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mmZ");
           df.setTimeZone(tz);
 
-          json.append("\"revoked\": true,");
-          json.append("\"revocationPrincipal\": \"" + r.getAuthorityName() + "\",");
-          json.append("\"revocationDate\": \"" + df.format(r.getRevocationDate()) + "\",");
-          json.append("\"revocationReason\": \"" + r.getRevocationReason() + "\",");
+          certInfo.revoked = true;
+          certInfo.revocationPrincipal = r.getAuthorityName().toString();
+          certInfo.revocationDate = r.getRevocationDate();
+          certInfo.revocationReason = r.getRevocationReason().toString();
         }
       }
     } catch (Exception e) {
       e.printStackTrace();
     }
 
-    return json;
+    return certInfo;
   }
 
   public void setTrustedStore(final String path) {
     trustedStore = path;
   }
 
-  private StringBuilder checkKeyStore(final X509Certificate cert, StringBuilder json) throws KeyStoreException, IOException, NoSuchAlgorithmException, FileNotFoundException, CertificateException{
+  private CertInfo checkKeyStore(final X509Certificate cert, CertInfo certInfo) throws KeyStoreException, IOException, NoSuchAlgorithmException, FileNotFoundException, CertificateException{
     KeyStore store = KeyStore.getInstance("JKS");
     FileInputStream fis = new FileInputStream(trustedStore);
     store.load(fis, null);
@@ -129,47 +132,46 @@ public class Verificator {
         if (storeIssuer.equals(issuer)) {
           try {
             cert.verify(storeCert.getPublicKey());
-            json.append("\"verified\": true,");
-            json.append("\"trusted\": true,");
+            certInfo.verified = true;
+            certInfo.trusted = true;
             caCert = storeCert;
             break;
           } catch (Exception e) {
-            json.append("\"verified\": false,");
-            json.append("\"verificationFailure\": \"" + e.getMessage() + "\",");
+            certInfo.verified = false;
+            certInfo.verificationFailure = e.getMessage();
           }
         }
       }
     }
 
     if (caCert == null) {
-      json.append("\"trusted\": false,");
+      certInfo.trusted = false;
     } else {
-      json = checkRevocation(caCert, cert, json);
+      certInfo = checkRevocation(caCert, cert, certInfo);
     }
 
-    return json;
+    return certInfo;
   }
 
-  private String getInfoFromCert(final COSDictionary cert) throws KeyStoreException, IOException, NoSuchAlgorithmException {
-    StringBuilder s = new StringBuilder();
+  private void getInfoFromCert(final COSDictionary cert) throws KeyStoreException, IOException, NoSuchAlgorithmException {
+    
     String name = cert.getString(COSName.NAME, "Unknown");
     String location = cert.getString(COSName.LOCATION, "Unknown");
     String reason = cert.getString(COSName.REASON, "Unknown");
     String contactInfo = cert.getString(COSName.CONTACT_INFO, "Unknown");
     String modified = cert.getString(COSName.M);
 
-    s.append("{");
-    s.append("\"hasSignature\":true,");
-    s.append("\"name\":\"" + name + "\", ");
-    s.append("\"modified\": \"" + modified + "\", ");
-    s.append("\"location\": \"" + location + "\", ");
-    s.append("\"reason\": \"" + reason + "\", ");
-    s.append("\"contactInfo\": \"" + contactInfo + "\", ");
+    info.hasSignature = true;
+    info.name = name;
+    info.modified = modified;
+    info.location = location;
+    info.reason = reason;
+    info.contactInfo = contactInfo;
 
     COSName subFilter = (COSName) cert.getDictionaryObject(COSName.SUB_FILTER);
 
     if (subFilter == null) {
-      return null;
+      return;
     }
 
     try {
@@ -186,60 +188,53 @@ public class Verificator {
       DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mmZ");
       df.setTimeZone(tz);
 
-      String comma = "";
       for (Certificate c: certs) {
         X509Certificate x509 = (X509Certificate) c;
-        certJSON.append(comma);
-        certJSON.append("{ ");
-        certJSON.append("\"serialNumber\": \"" + x509.getSerialNumber().toString() + "\",");
-        certJSON.append("\"signature\": \"" + bytesToHex(x509.getSignature()) + "\",");
-        String issuer = x509.getIssuerX500Principal().toString();
-        String subject = x509.getSubjectX500Principal().toString();
+        CertInfo certInfo = new CertInfo();
 
-          try {
-            if (issuer.equals(subject)) {
-              certJSON.append("\"selfSigned\": true,");
-            } else {
-              certJSON.append("\"selfSigned\": false,");
-            }
+        certInfo.serialNumber = x509.getSerialNumber().toString();
+        certInfo.signature = bytesToHex(x509.getSignature());
+        certInfo.issuer = x509.getIssuerX500Principal().toString();
+        certInfo.subject = x509.getSubjectX500Principal().toString();
 
-            certJSON = checkKeyStore(x509, certJSON);
-            certJSON = checkRevocation(x509, x509, certJSON);
-          } catch (Exception e) {
-            certJSON.append("\"verified\": false,");
-            certJSON.append("\"verificationFailure\": \"" + e.getMessage() + "\",");
+        try {
+          if (certInfo.issuer.equals(certInfo.subject)) {
+            certInfo.selfSigned = true;
+          } else {
+            certInfo.selfSigned = false;
           }
 
-        certJSON.append("\"subject\": \"" + x509.getSubjectX500Principal().toString() + "\",");
+          certInfo = checkKeyStore(x509, certInfo);
+          certInfo = checkRevocation(x509, x509, certInfo);
+        } catch (Exception e) {
+          certInfo.verified = false;
+          certInfo.verificationFailure = e.getMessage();
+        }
 
-        certJSON.append("\"notBefore\": \"" + df.format(x509.getNotBefore()) + "\",");
-        certJSON.append("\"notAfter\": \"" + df.format(x509.getNotAfter()) + "\",");
+        certInfo.notBefore = x509.getNotBefore();
+        certInfo.notAfter = x509.getNotAfter();
 
         try {
           x509.checkValidity();
-          certJSON.append("\"state\": \"valid\",");
+          certInfo.state = "valid";
         } catch (CertificateExpiredException e) {
-          certJSON.append("\"state\": \"expired\",");
+          certInfo.state = "expired";
         } catch (CertificateNotYetValidException e) {
-          certJSON.append("\"state\": \"notYet\",");
+          certInfo.state = "notYet";
         }
-
-        certJSON.append("\"issuer\": \"" + issuer + "\"");
-        certJSON.append("} ");
-        comma = ",";
+        info.certs.add(certInfo);
       }
-      s.append("\"certs\": [" + certJSON.toString() + "]");
-      s.append("}");
     } catch (CertificateException e) {
       e.printStackTrace();
-      s = new StringBuilder();
     }
 
-
-    return s.toString();
   }
 
-  public String validate(final String path) throws IOException, CertificateException, KeyStoreException, NoSuchAlgorithmException {
+  public Verificator(final String path) {
+    this.path = path;
+  }
+
+  public PDFDocumentInfo validate() throws IOException, CertificateException, KeyStoreException, NoSuchAlgorithmException {
     String infoString = null;
     PDDocument document = null;
     try {
@@ -249,8 +244,7 @@ public class Verificator {
       COSDictionary root = (COSDictionary) trailer.getDictionaryObject(COSName.ROOT);
       COSDictionary acroForm = (COSDictionary) root.getDictionaryObject(COSName.ACRO_FORM);
       if (acroForm == null) {
-        infoString = "{ \"hasSignature\": false}";
-        return infoString;
+        return info;
       }
       COSArray fields = (COSArray) acroForm.getDictionaryObject(COSName.FIELDS);
 
@@ -262,14 +256,11 @@ public class Verificator {
         if (COSName.SIG.equals(type)) {
           COSDictionary cert = (COSDictionary) field.getDictionaryObject(COSName.V);
           if (cert != null) {
-            infoString = getInfoFromCert(cert);
+            getInfoFromCert(cert);
             certFound = true;
           }
         }
 
-      }
-      if (certFound != true) {
-        infoString = "{ \"hasSignature\": false}";
       }
 
     }
@@ -278,7 +269,7 @@ public class Verificator {
         document.close();
       }
     }
-    return infoString;
+    return info;
   }
 
 }

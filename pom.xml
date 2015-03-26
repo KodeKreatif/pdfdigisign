@@ -21,6 +21,5 @@
       <scope>system</scope>
       <systemPath>${project.basedir}/libs/pdfbox-2.0.0.jar</systemPath>
     </dependency>
-
   </dependencies>
 </project>
