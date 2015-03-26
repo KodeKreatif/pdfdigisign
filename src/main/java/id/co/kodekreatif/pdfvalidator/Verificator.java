@@ -144,7 +144,7 @@ public class Verificator {
     return json;
   }
 
-  public String getInfoFromCert(final COSDictionary cert) throws KeyStoreException, IOException, NoSuchAlgorithmException {
+  private String getInfoFromCert(final COSDictionary cert) throws KeyStoreException, IOException, NoSuchAlgorithmException {
     StringBuilder s = new StringBuilder();
     String name = cert.getString(COSName.NAME, "Unknown");
     String location = cert.getString(COSName.LOCATION, "Unknown");
