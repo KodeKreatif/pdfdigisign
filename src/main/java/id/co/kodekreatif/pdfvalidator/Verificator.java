@@ -132,12 +132,12 @@ public class Verificator {
         if (storeIssuer.equals(issuer)) {
           try {
             cert.verify(storeCert.getPublicKey());
-            certInfo.verified = true;
             certInfo.trusted = true;
             caCert = storeCert;
             break;
           } catch (Exception e) {
-            certInfo.verified = false;
+            certInfo.trusted = false;
+
             certInfo.verificationFailure = e.getMessage();
           }
         }
@@ -206,6 +206,7 @@ public class Verificator {
 
           certInfo = checkKeyStore(x509, certInfo);
           certInfo = checkRevocation(x509, x509, certInfo);
+          certInfo.verified = true;
         } catch (Exception e) {
           certInfo.verified = false;
           certInfo.verificationFailure = e.getMessage();
