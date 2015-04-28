@@ -127,9 +127,9 @@ public class Verificator {
       String alias = (String) aliases.nextElement();
       if (store.isCertificateEntry(alias)) {
         X509Certificate storeCert = (X509Certificate) store.getCertificate(alias);
-        String storeIssuer = storeCert.getIssuerX500Principal().getName();
+        String storePrincipal = storeCert.getSubjectX500Principal().getName();
 
-        if (storeIssuer.equals(issuer)) {
+        if (storePrincipal.equals(issuer)) {
           try {
             cert.verify(storeCert.getPublicKey());
             certInfo.trusted = true;
@@ -137,7 +137,6 @@ public class Verificator {
             break;
           } catch (Exception e) {
             certInfo.trusted = false;
-
             certInfo.verificationFailure = e.getMessage();
           }
         }
