@@ -42,6 +42,9 @@ import java.util.HashSet;
 import java.util.Set;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
+
 
 import org.apache.pdfbox.cos.COSArray;
 import org.apache.pdfbox.cos.COSDictionary;
@@ -56,7 +59,6 @@ public class Verificator {
 
   private PDFDocumentInfo info = new PDFDocumentInfo();
     
-  private String trustedStore = "/etc/ssl/certs/java/cacerts";
   private PrivateKey privKey;
   private Certificate cert;
   private String path;
@@ -110,37 +112,28 @@ public class Verificator {
     return certInfo;
   }
 
-  public void setTrustedStore(final String path) {
-    trustedStore = path;
-  }
+  public static CertInfo checkKeyStore(final X509Certificate cert, CertInfo certInfo) throws KeyStoreException, IOException, NoSuchAlgorithmException, FileNotFoundException, CertificateException{
 
-  public static CertInfo checkKeyStore(final String trustedStore, final X509Certificate cert, CertInfo certInfo) throws KeyStoreException, IOException, NoSuchAlgorithmException, FileNotFoundException, CertificateException{
-    KeyStore store = KeyStore.getInstance("JKS");
-    FileInputStream fis = new FileInputStream(trustedStore);
-    store.load(fis, null);
-    fis.close();
+    TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+    tmf.init((KeyStore) null);
+    X509TrustManager xtm = (X509TrustManager) tmf.getTrustManagers()[0];
     String issuer = cert.getIssuerX500Principal().getName();
-
-    Enumeration aliases = store.aliases();
     X509Certificate caCert = null;
-    while (aliases.hasMoreElements()) {
-      String alias = (String) aliases.nextElement();
-      if (store.isCertificateEntry(alias)) {
-        X509Certificate storeCert = (X509Certificate) store.getCertificate(alias);
+
+    for (X509Certificate storeCert : xtm.getAcceptedIssuers()) {
         String storePrincipal = storeCert.getSubjectX500Principal().getName();
 
         if (storePrincipal.equals(issuer)) {
-          try {
-            cert.verify(storeCert.getPublicKey());
-            certInfo.trusted = true;
-            caCert = storeCert;
-            break;
-          } catch (Exception e) {
-            certInfo.trusted = false;
-            certInfo.verificationFailure = e.getMessage();
-          }
+            try {
+                cert.verify(storeCert.getPublicKey());
+                certInfo.trusted = true;
+                caCert = storeCert;
+                break;
+            } catch (Exception e) {
+                certInfo.trusted = false;
+                certInfo.verificationFailure = e.getMessage();
+            }
         }
-      }
     }
 
     if (caCert == null) {
@@ -203,7 +196,7 @@ public class Verificator {
             certInfo.selfSigned = false;
           }
 
-          certInfo = checkKeyStore(trustedStore, x509, certInfo);
+          certInfo = checkKeyStore(x509, certInfo);
           certInfo = checkRevocation(x509, x509, certInfo);
           certInfo.verified = true;
         } catch (Exception e) {
