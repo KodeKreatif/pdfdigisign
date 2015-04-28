@@ -73,7 +73,7 @@ public class Verificator {
     return new String(hexChars);
   }
 
-  private CertInfo checkRevocation(final X509Certificate caCert, final X509Certificate cert, CertInfo certInfo) {
+  public static CertInfo checkRevocation(final X509Certificate caCert, final X509Certificate cert, CertInfo certInfo) {
     System.setProperty("com.sun.security.enableCRLDP", "true");
     try {
       Vector<X509Certificate> certs = new Vector<X509Certificate>();
@@ -114,7 +114,7 @@ public class Verificator {
     trustedStore = path;
   }
 
-  private CertInfo checkKeyStore(final X509Certificate cert, CertInfo certInfo) throws KeyStoreException, IOException, NoSuchAlgorithmException, FileNotFoundException, CertificateException{
+  public static CertInfo checkKeyStore(final String trustedStore, final X509Certificate cert, CertInfo certInfo) throws KeyStoreException, IOException, NoSuchAlgorithmException, FileNotFoundException, CertificateException{
     KeyStore store = KeyStore.getInstance("JKS");
     FileInputStream fis = new FileInputStream(trustedStore);
     store.load(fis, null);
@@ -203,7 +203,7 @@ public class Verificator {
             certInfo.selfSigned = false;
           }
 
-          certInfo = checkKeyStore(x509, certInfo);
+          certInfo = checkKeyStore(trustedStore, x509, certInfo);
           certInfo = checkRevocation(x509, x509, certInfo);
           certInfo.verified = true;
         } catch (Exception e) {
