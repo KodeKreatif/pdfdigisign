@@ -128,10 +128,12 @@ public class Verificator {
           cert.verify(storeCert.getPublicKey());
           certInfo.trusted = true;
           caCert = storeCert;
-          break;
         } catch (Exception e) {
           certInfo.trusted = false;
           certInfo.verificationFailure = e.getMessage();
+        }
+        finally {
+          break;
         }
       }
     }
