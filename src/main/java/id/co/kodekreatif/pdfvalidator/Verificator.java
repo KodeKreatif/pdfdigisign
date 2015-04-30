@@ -82,7 +82,7 @@ public class Verificator {
       certs.add(cert);
 
       CertificateFactory factory = CertificateFactory.getInstance("X509");
-      CertPath path = (CertPath) factory.generateCertPath(certs);
+      CertPath path = factory.generateCertPath(certs);
 
       TrustAnchor anchor = new TrustAnchor(caCert, null);
       Set<TrustAnchor> trusted = new HashSet<TrustAnchor>();
