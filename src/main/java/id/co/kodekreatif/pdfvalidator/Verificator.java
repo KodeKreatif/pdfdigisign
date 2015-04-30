@@ -58,7 +58,7 @@ import org.apache.pdfbox.pdmodel.interactive.digitalsignature.SignatureInterface
 public class Verificator {
 
   private PDFDocumentInfo info = new PDFDocumentInfo();
-    
+
   private PrivateKey privKey;
   private Certificate cert;
   private String path;
@@ -121,19 +121,19 @@ public class Verificator {
     X509Certificate caCert = null;
 
     for (X509Certificate storeCert : xtm.getAcceptedIssuers()) {
-        String storePrincipal = storeCert.getSubjectX500Principal().getName();
+      String storePrincipal = storeCert.getSubjectX500Principal().getName();
 
-        if (storePrincipal.equals(issuer)) {
-            try {
-                cert.verify(storeCert.getPublicKey());
-                certInfo.trusted = true;
-                caCert = storeCert;
-                break;
-            } catch (Exception e) {
-                certInfo.trusted = false;
-                certInfo.verificationFailure = e.getMessage();
-            }
+      if (storePrincipal.equals(issuer)) {
+        try {
+          cert.verify(storeCert.getPublicKey());
+          certInfo.trusted = true;
+          caCert = storeCert;
+          break;
+        } catch (Exception e) {
+          certInfo.trusted = false;
+          certInfo.verificationFailure = e.getMessage();
         }
+      }
     }
 
     if (caCert == null) {
@@ -146,7 +146,7 @@ public class Verificator {
   }
 
   private void getInfoFromCert(final COSDictionary cert) throws KeyStoreException, IOException, NoSuchAlgorithmException {
-    
+
     String name = cert.getString(COSName.NAME, "Unknown");
     String location = cert.getString(COSName.LOCATION, "Unknown");
     String reason = cert.getString(COSName.REASON, "Unknown");
