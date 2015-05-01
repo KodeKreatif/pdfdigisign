@@ -199,7 +199,6 @@ public class Verificator {
           }
 
           certInfo = checkKeyStore(x509, certInfo);
-          certInfo = checkRevocation(x509, x509, certInfo);
           certInfo.verified = true;
         } catch (Exception e) {
           certInfo.verified = false;
