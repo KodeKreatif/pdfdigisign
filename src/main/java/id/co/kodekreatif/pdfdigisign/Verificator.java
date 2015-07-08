@@ -54,6 +54,9 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.PDSignature;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.SignatureInterface;
 
+/**
+ * Verifies digital signatures (if any) embedded in a PDF file
+ */
 public class Verificator {
 
   private PDFDocumentInfo doc = new PDFDocumentInfo();
@@ -74,6 +77,15 @@ public class Verificator {
     return new String(hexChars);
   }
 
+  /**
+   *
+   * Checks the revocation status of a certificate
+   *
+   * @param caCert The CA cert to be checked
+   * @param cert The cert to be checked
+   * @param certInfo CertInfo structure which will be populated
+   * @return the populated @CertInfo structure
+   **/
   public static CertInfo checkRevocation(final X509Certificate caCert, final X509Certificate cert, CertInfo certInfo) {
     System.setProperty("com.sun.security.enableCRLDP", "true");
     try {
@@ -111,6 +123,14 @@ public class Verificator {
     return certInfo;
   }
 
+  /**
+   *
+   * Checks keystore for a specific cert record, and populate it in a <CertInfo> structure
+   *
+   * @param cert The cert to be checked
+   * @param certInfo CertInfo structure which will be populated
+   * @return the populated CertInfo structure
+   **/
   public static CertInfo checkKeyStore(final X509Certificate cert, CertInfo certInfo) throws KeyStoreException, IOException, NoSuchAlgorithmException, FileNotFoundException, CertificateException{
 
     TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
@@ -221,10 +241,19 @@ public class Verificator {
     doc.signatures.add(info);
   }
 
+  /**
+   * Constructor
+   *
+   * @param path Path pointing to a PDF file to be validated
+   **/
   public Verificator(final String path) {
     this.path = path;
   }
 
+  /**
+   * Validates the PDF file specified in the constructor
+   * @return PDFDocumentInfo structure
+   **/
   public PDFDocumentInfo validate() throws IOException, CertificateException, KeyStoreException, NoSuchAlgorithmException {
     String infoString = null;
     PDDocument document = null;

@@ -1,6 +1,9 @@
 package id.co.kodekreatif.pdfdigisign;
 
 import java.util.Date;
+/**
+ * A structure holding certificate information.
+ **/
 public class CertInfo {
   public String issuer = "";
   public String subject = "";
