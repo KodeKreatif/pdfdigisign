@@ -8,10 +8,6 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import id.co.kodekreatif.pdfdigisign.*;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
-
 class GenericCheckInfo {
   public PDFDocumentInfo info = null;
   public int status = -1;
@@ -58,10 +54,5 @@ public class VerificatorTest {
     GenericCheckInfo i = generic("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/two-signatures.pdf");
     assertEquals("Verification must be successful", i.status, 0);
     assertEquals("Signature length must be two", i.info.signatures.size(), 2);
-    Gson gson = new GsonBuilder().create();
-    String info = gson.toJson(i.info);
-    System.out.println(info);
   }
-
-
 }

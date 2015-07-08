@@ -24,5 +24,3 @@ public class CertInfo {
 
   public boolean selfSigned = false;
 }
-
-
