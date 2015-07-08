@@ -221,7 +221,6 @@ public class Verificator {
     } catch (CertificateException e) {
       e.printStackTrace();
     }
-
   }
 
   public Verificator(final String path) {
