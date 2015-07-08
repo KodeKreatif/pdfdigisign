@@ -1,4 +1,4 @@
-package id.co.kodekreatif.pdfvalidator;
+package id.co.kodekreatif.pdfdigisign;
 
 import java.util.Date;
 public class CertInfo {

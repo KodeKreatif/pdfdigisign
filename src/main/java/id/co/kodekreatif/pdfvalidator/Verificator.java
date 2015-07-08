@@ -1,4 +1,4 @@
-package id.co.kodekreatif.pdfvalidator;
+package id.co.kodekreatif.pdfdigisign;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
