@@ -49,4 +49,13 @@ public class VerificatorTest {
     assertEquals("Signature must not exist", i.info.hasSignature, true);
   }
 
+  @Test
+  public void testTwoSignatures() {
+    GenericCheckInfo i = generic("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/two-signatures.pdf");
+    assertEquals("Verification must be successful", i.status, 0);
+    assertEquals("Signature must not exist", i.info.hasSignature, true);
+    assertEquals("Signature length must be two", i.info.certs.size(), 3);
+  }
+
+
 }
