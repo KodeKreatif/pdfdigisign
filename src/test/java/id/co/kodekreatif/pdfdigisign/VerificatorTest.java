@@ -36,9 +36,17 @@ public class VerificatorTest {
   }
 
   @Test
-  public void test() {
+  public void testNoSignature() {
     GenericCheckInfo i = generic("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/no-signature.pdf");
     assertEquals("Verification must be successful", i.status, 0);
     assertEquals("Signature must not exist", i.info.hasSignature, false);
   }
+
+  @Test
+  public void testSimpleSignature() {
+    GenericCheckInfo i = generic("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/simple-signature.pdf");
+    assertEquals("Verification must be successful", i.status, 0);
+    assertEquals("Signature must not exist", i.info.hasSignature, true);
+  }
+
 }
