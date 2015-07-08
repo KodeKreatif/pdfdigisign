@@ -8,6 +8,10 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import id.co.kodekreatif.pdfdigisign.*;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
+
 class GenericCheckInfo {
   public PDFDocumentInfo info = null;
   public int status = -1;
@@ -39,22 +43,24 @@ public class VerificatorTest {
   public void testNoSignature() {
     GenericCheckInfo i = generic("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/no-signature.pdf");
     assertEquals("Verification must be successful", i.status, 0);
-    assertEquals("Signature must not exist", i.info.hasSignature, false);
+    assertEquals("Signature must exist", i.info.signatures.size(), 0);
   }
 
   @Test
   public void testSimpleSignature() {
     GenericCheckInfo i = generic("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/simple-signature.pdf");
     assertEquals("Verification must be successful", i.status, 0);
-    assertEquals("Signature must not exist", i.info.hasSignature, true);
+    assertEquals("Signature must exist", i.info.signatures.size(), 1);
   }
 
   @Test
   public void testTwoSignatures() {
     GenericCheckInfo i = generic("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/two-signatures.pdf");
     assertEquals("Verification must be successful", i.status, 0);
-    assertEquals("Signature must not exist", i.info.hasSignature, true);
-    assertEquals("Signature length must be two", i.info.certs.size(), 3);
+    assertEquals("Signature length must be two", i.info.signatures.size(), 2);
+    Gson gson = new GsonBuilder().create();
+    String info = gson.toJson(i.info);
+    System.out.println(info);
   }
 
 

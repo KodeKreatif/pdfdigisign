@@ -9,7 +9,6 @@ import java.io.FileOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.InterruptedException;
-import java.lang.StringBuilder;
 
 import java.security.PrivateKey;
 import java.security.cert.CertStore;
@@ -57,7 +56,7 @@ import org.apache.pdfbox.pdmodel.interactive.digitalsignature.SignatureInterface
 
 public class Verificator {
 
-  private PDFDocumentInfo info = new PDFDocumentInfo();
+  private PDFDocumentInfo doc = new PDFDocumentInfo();
 
   private PrivateKey privKey;
   private Certificate cert;
@@ -147,36 +146,34 @@ public class Verificator {
     return certInfo;
   }
 
-  private void getInfoFromCert(final COSDictionary cert) throws KeyStoreException, IOException, NoSuchAlgorithmException {
+  private void getSignatureInfo(final COSDictionary sigRecord) throws KeyStoreException, IOException, NoSuchAlgorithmException {
 
-    String name = cert.getString(COSName.NAME, "Unknown");
-    String location = cert.getString(COSName.LOCATION, "Unknown");
-    String reason = cert.getString(COSName.REASON, "Unknown");
-    String contactInfo = cert.getString(COSName.CONTACT_INFO, "Unknown");
-    String modified = cert.getString(COSName.M);
+    String name = sigRecord.getString(COSName.NAME, "Unknown");
+    String location = sigRecord.getString(COSName.LOCATION, "Unknown");
+    String reason = sigRecord.getString(COSName.REASON, "Unknown");
+    String contactInfo = sigRecord.getString(COSName.CONTACT_INFO, "Unknown");
+    String modified = sigRecord.getString(COSName.M);
 
-    info.hasSignature = true;
+    SignatureInfo info = new SignatureInfo();
     info.name = name;
     info.modified = modified;
     info.location = location;
     info.reason = reason;
     info.contactInfo = contactInfo;
 
-    COSName subFilter = (COSName) cert.getDictionaryObject(COSName.SUB_FILTER);
+    COSName subFilter = (COSName) sigRecord.getDictionaryObject(COSName.SUB_FILTER);
 
     if (subFilter == null) {
       return;
     }
 
     try {
-      COSString certString = (COSString) cert.getDictionaryObject(COSName.CONTENTS);
+      COSString certString = (COSString) sigRecord.getDictionaryObject(COSName.CONTENTS);
       byte[] certData = certString.getBytes();
       CertificateFactory factory = CertificateFactory.getInstance("X.509");
       ByteArrayInputStream certStream = new ByteArrayInputStream(certData);
       final CertPath certPath = factory.generateCertPath(certStream, "PKCS7");
       Collection<? extends Certificate> certs = certPath.getCertificates();
-
-      StringBuilder certJSON = new StringBuilder();
 
       TimeZone tz = TimeZone.getTimeZone("UTC");
       DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mmZ");
@@ -221,6 +218,7 @@ public class Verificator {
     } catch (CertificateException e) {
       e.printStackTrace();
     }
+    doc.signatures.add(info);
   }
 
   public Verificator(final String path) {
@@ -237,34 +235,27 @@ public class Verificator {
       COSDictionary root = (COSDictionary) trailer.getDictionaryObject(COSName.ROOT);
       COSDictionary acroForm = (COSDictionary) root.getDictionaryObject(COSName.ACRO_FORM);
       if (acroForm == null) {
-        return info;
+        return doc;
       }
       COSArray fields = (COSArray) acroForm.getDictionaryObject(COSName.FIELDS);
 
-      boolean certFound = false;
       for (int i = 0; i < fields.size(); i ++) {
         COSDictionary field = (COSDictionary) fields.getObject(i);
 
         COSName type = field.getCOSName(COSName.FT);
         if (COSName.SIG.equals(type)) {
-          COSDictionary cert = (COSDictionary) field.getDictionaryObject(COSName.V);
-          if (cert != null) {
-            getInfoFromCert(cert);
-            certFound = true;
+          COSDictionary sig = (COSDictionary) field.getDictionaryObject(COSName.V);
+          if (sig != null) {
+            getSignatureInfo(sig);
           }
         }
-
       }
-
     }
     finally {
       if (document != null) {
         document.close();
       }
     }
-    return info;
+    return doc;
   }
-
 }
-
-
