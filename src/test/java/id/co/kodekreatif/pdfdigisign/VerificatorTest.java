@@ -13,6 +13,7 @@ import org.junit.Before;
 import static org.junit.Assert.assertEquals;
 import id.co.kodekreatif.pdfdigisign.*;
 
+
 class GenericCheckInfo {
   public PDFDocumentInfo info = null;
   public int status = -1;
@@ -52,7 +53,6 @@ public class VerificatorTest {
     if (testKeyStore == null) {
       testKeyStore = new TestKeyStore();
     }
-    
   }
 
   public GenericCheckInfo generic(Verificator v) {
@@ -107,6 +107,7 @@ public class VerificatorTest {
     assertEquals("Verification must be successful", i.status, 0);
     assertEquals("Signature must exist", i.info.signatures.size(), 1);
     assertEquals("Cert must be trusted", ((i.info.signatures.get(0)).certs.get(0)).trusted, false);
+    assertEquals("Cert must be verified", ((i.info.signatures.get(0)).certs.get(0)).verified, true);
   }
 
 
@@ -117,10 +118,10 @@ public class VerificatorTest {
     assertEquals("Cert addition must be successful", true, added);
     v.setKeyStore(testKeyStore.store);
     GenericCheckInfo i = generic(v);
-
     assertEquals("Verification must be successful", i.status, 0);
     assertEquals("Signature must exist", i.info.signatures.size(), 1);
     assertEquals("Cert must be trusted", ((i.info.signatures.get(0)).certs.get(0)).trusted, true);
+    assertEquals("Cert must be verified", ((i.info.signatures.get(0)).certs.get(0)).verified, true);
   }
 
 
