@@ -64,6 +64,7 @@ public class Verificator {
   private PrivateKey privKey;
   private Certificate cert;
   private String path;
+  private KeyStore keyStore = null;
 
   // http://stackoverflow.com/a/9855338
   private static String bytesToHex(byte[] bytes) {
@@ -127,14 +128,15 @@ public class Verificator {
    *
    * Checks keystore for a specific cert record, and populate it in a <CertInfo> structure
    *
+   * @param keyStore The KeyStore to use
    * @param cert The cert to be checked
    * @param certInfo CertInfo structure which will be populated
    * @return the populated CertInfo structure
    **/
-  public static CertInfo checkKeyStore(final X509Certificate cert, CertInfo certInfo) throws KeyStoreException, IOException, NoSuchAlgorithmException, FileNotFoundException, CertificateException{
+  public static CertInfo checkKeyStore(KeyStore keyStore, final X509Certificate cert, CertInfo certInfo) throws KeyStoreException, IOException, NoSuchAlgorithmException, FileNotFoundException, CertificateException{
 
     TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-    tmf.init((KeyStore) null);
+    tmf.init(keyStore);
     X509TrustManager xtm = (X509TrustManager) tmf.getTrustManagers()[0];
     String issuer = cert.getIssuerX500Principal().getName();
     X509Certificate caCert = null;
@@ -215,7 +217,7 @@ public class Verificator {
             certInfo.selfSigned = false;
           }
 
-          certInfo = checkKeyStore(x509, certInfo);
+          certInfo = checkKeyStore(keyStore, x509, certInfo);
           certInfo.verified = true;
         } catch (Exception e) {
           certInfo.verified = false;
@@ -248,6 +250,13 @@ public class Verificator {
    **/
   public Verificator(final String path) {
     this.path = path;
+  }
+
+  /**
+   * Sets a custom KeyStore
+   */
+  public void setKeyStore(final KeyStore keyStore) {
+    this.keyStore = keyStore;
   }
 
   /**
