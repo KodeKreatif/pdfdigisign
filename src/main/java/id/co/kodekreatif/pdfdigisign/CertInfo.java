@@ -1,6 +1,10 @@
-package id.co.kodekreatif.pdfvalidator;
+package id.co.kodekreatif.pdfdigisign;
 
+import java.util.ArrayList;
 import java.util.Date;
+/**
+ * A structure holding certificate information.
+ **/
 public class CertInfo {
   public String issuer = "";
   public String subject = "";
@@ -13,13 +17,11 @@ public class CertInfo {
 
   public boolean trusted = false;
   public boolean verified = false;
-  public String verificationFailure = "";
+  public boolean valid = false;
+  public ArrayList<String> problems = new ArrayList<String>();
 
-  public String state = "invalid";
   public Date notBefore;
   public Date notAfter;
 
   public boolean selfSigned = false;
 }
-
-

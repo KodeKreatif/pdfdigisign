@@ -1,4 +1,4 @@
-package id.co.kodekreatif.pdfvalidator;
+package id.co.kodekreatif.pdfdigisign;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -9,7 +9,6 @@ import java.io.FileOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.InterruptedException;
-import java.lang.StringBuilder;
 
 import java.security.PrivateKey;
 import java.security.cert.CertStore;
@@ -34,17 +33,12 @@ import java.security.cert.CertPathValidator;
 import java.security.cert.PKIXCertPathValidatorResult;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Enumeration;
 import java.util.List;
-import java.util.TimeZone;
 import java.util.Vector;
 import java.util.HashSet;
 import java.util.Set;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
-
 
 import org.apache.pdfbox.cos.COSArray;
 import org.apache.pdfbox.cos.COSDictionary;
@@ -55,13 +49,17 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.PDSignature;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.SignatureInterface;
 
+/**
+ * Verifies digital signatures (if any) embedded in a PDF file
+ */
 public class Verificator {
 
-  private PDFDocumentInfo info = new PDFDocumentInfo();
+  private PDFDocumentInfo doc = new PDFDocumentInfo();
 
   private PrivateKey privKey;
   private Certificate cert;
   private String path;
+  private KeyStore keyStore = null;
 
   // http://stackoverflow.com/a/9855338
   private static String bytesToHex(byte[] bytes) {
@@ -75,6 +73,15 @@ public class Verificator {
     return new String(hexChars);
   }
 
+  /**
+   *
+   * Checks the revocation status of a certificate
+   *
+   * @param caCert The CA cert to be checked
+   * @param cert The cert to be checked
+   * @param certInfo CertInfo structure which will be populated
+   * @return the populated @CertInfo structure
+   **/
   public static CertInfo checkRevocation(final X509Certificate caCert, final X509Certificate cert, CertInfo certInfo) {
     System.setProperty("com.sun.security.enableCRLDP", "true");
     try {
@@ -95,9 +102,6 @@ public class Verificator {
       } catch (Exception e) {
         if (e.getCause() != null  && e.getCause().getClass().getName().equals("java.security.cert.CertificateRevokedException")) {
           CertificateRevokedException r = (CertificateRevokedException) e.getCause();
-          TimeZone tz = TimeZone.getTimeZone("UTC");
-          DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mmZ");
-          df.setTimeZone(tz);
 
           certInfo.revoked = true;
           certInfo.revocationPrincipal = r.getAuthorityName().toString();
@@ -112,10 +116,19 @@ public class Verificator {
     return certInfo;
   }
 
-  public static CertInfo checkKeyStore(final X509Certificate cert, CertInfo certInfo) throws KeyStoreException, IOException, NoSuchAlgorithmException, FileNotFoundException, CertificateException{
+  /**
+   *
+   * Checks keystore for a specific cert record, and populate it in a <CertInfo> structure
+   *
+   * @param keyStore The KeyStore to use
+   * @param cert The cert to be checked
+   * @param certInfo CertInfo structure which will be populated
+   * @return the populated CertInfo structure
+   **/
+  public static CertInfo checkKeyStore(KeyStore keyStore, final X509Certificate cert, CertInfo certInfo) throws KeyStoreException, IOException, NoSuchAlgorithmException, FileNotFoundException, CertificateException{
 
     TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-    tmf.init((KeyStore) null);
+    tmf.init(keyStore);
     X509TrustManager xtm = (X509TrustManager) tmf.getTrustManagers()[0];
     String issuer = cert.getIssuerX500Principal().getName();
     X509Certificate caCert = null;
@@ -130,7 +143,7 @@ public class Verificator {
           caCert = storeCert;
         } catch (Exception e) {
           certInfo.trusted = false;
-          certInfo.verificationFailure = e.getMessage();
+          certInfo.problems.add(e.getMessage());
         }
         finally {
           break;
@@ -147,40 +160,34 @@ public class Verificator {
     return certInfo;
   }
 
-  private void getInfoFromCert(final COSDictionary cert) throws KeyStoreException, IOException, NoSuchAlgorithmException {
+  private void getSignatureInfo(final COSDictionary sigRecord) throws KeyStoreException, IOException, NoSuchAlgorithmException {
 
-    String name = cert.getString(COSName.NAME, "Unknown");
-    String location = cert.getString(COSName.LOCATION, "Unknown");
-    String reason = cert.getString(COSName.REASON, "Unknown");
-    String contactInfo = cert.getString(COSName.CONTACT_INFO, "Unknown");
-    String modified = cert.getString(COSName.M);
+    String name = sigRecord.getString(COSName.NAME, "Unknown");
+    String location = sigRecord.getString(COSName.LOCATION, "Unknown");
+    String reason = sigRecord.getString(COSName.REASON, "Unknown");
+    String contactInfo = sigRecord.getString(COSName.CONTACT_INFO, "Unknown");
+    String modified = sigRecord.getString(COSName.M);
 
-    info.hasSignature = true;
+    SignatureInfo info = new SignatureInfo();
     info.name = name;
     info.modified = modified;
     info.location = location;
     info.reason = reason;
     info.contactInfo = contactInfo;
 
-    COSName subFilter = (COSName) cert.getDictionaryObject(COSName.SUB_FILTER);
+    COSName subFilter = (COSName) sigRecord.getDictionaryObject(COSName.SUB_FILTER);
 
     if (subFilter == null) {
       return;
     }
 
     try {
-      COSString certString = (COSString) cert.getDictionaryObject(COSName.CONTENTS);
+      COSString certString = (COSString) sigRecord.getDictionaryObject(COSName.CONTENTS);
       byte[] certData = certString.getBytes();
       CertificateFactory factory = CertificateFactory.getInstance("X.509");
       ByteArrayInputStream certStream = new ByteArrayInputStream(certData);
       final CertPath certPath = factory.generateCertPath(certStream, "PKCS7");
       Collection<? extends Certificate> certs = certPath.getCertificates();
-
-      StringBuilder certJSON = new StringBuilder();
-
-      TimeZone tz = TimeZone.getTimeZone("UTC");
-      DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mmZ");
-      df.setTimeZone(tz);
 
       for (Certificate c: certs) {
         X509Certificate x509 = (X509Certificate) c;
@@ -198,11 +205,11 @@ public class Verificator {
             certInfo.selfSigned = false;
           }
 
-          certInfo = checkKeyStore(x509, certInfo);
+          certInfo = checkKeyStore(keyStore, x509, certInfo);
           certInfo.verified = true;
         } catch (Exception e) {
           certInfo.verified = false;
-          certInfo.verificationFailure = e.getMessage();
+          certInfo.problems.add(e.getMessage());
         }
 
         certInfo.notBefore = x509.getNotBefore();
@@ -210,24 +217,42 @@ public class Verificator {
 
         try {
           x509.checkValidity();
-          certInfo.state = "valid";
+          certInfo.valid = true;
         } catch (CertificateExpiredException e) {
-          certInfo.state = "expired";
+          certInfo.problems.add("expired");
+          certInfo.valid = false;
         } catch (CertificateNotYetValidException e) {
-          certInfo.state = "notYet";
+          certInfo.problems.add("not-yet-valid");
+          certInfo.valid = false;
         }
         info.certs.add(certInfo);
       }
     } catch (CertificateException e) {
       e.printStackTrace();
     }
-
+    doc.signatures.add(info);
   }
 
+  /**
+   * Constructor
+   *
+   * @param path Path pointing to a PDF file to be validated
+   **/
   public Verificator(final String path) {
     this.path = path;
   }
 
+  /**
+   * Sets a custom KeyStore
+   */
+  public void setKeyStore(final KeyStore keyStore) {
+    this.keyStore = keyStore;
+  }
+
+  /**
+   * Validates the PDF file specified in the constructor
+   * @return PDFDocumentInfo structure
+   **/
   public PDFDocumentInfo validate() throws IOException, CertificateException, KeyStoreException, NoSuchAlgorithmException {
     String infoString = null;
     PDDocument document = null;
@@ -238,34 +263,27 @@ public class Verificator {
       COSDictionary root = (COSDictionary) trailer.getDictionaryObject(COSName.ROOT);
       COSDictionary acroForm = (COSDictionary) root.getDictionaryObject(COSName.ACRO_FORM);
       if (acroForm == null) {
-        return info;
+        return doc;
       }
       COSArray fields = (COSArray) acroForm.getDictionaryObject(COSName.FIELDS);
 
-      boolean certFound = false;
       for (int i = 0; i < fields.size(); i ++) {
         COSDictionary field = (COSDictionary) fields.getObject(i);
 
         COSName type = field.getCOSName(COSName.FT);
         if (COSName.SIG.equals(type)) {
-          COSDictionary cert = (COSDictionary) field.getDictionaryObject(COSName.V);
-          if (cert != null) {
-            getInfoFromCert(cert);
-            certFound = true;
+          COSDictionary sig = (COSDictionary) field.getDictionaryObject(COSName.V);
+          if (sig != null) {
+            getSignatureInfo(sig);
           }
         }
-
       }
-
     }
     finally {
       if (document != null) {
         document.close();
       }
     }
-    return info;
+    return doc;
   }
-
 }
-
-
