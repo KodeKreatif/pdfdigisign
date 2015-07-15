@@ -39,6 +39,17 @@
       <artifactId>cobertura-maven-plugin</artifactId>
       <version>2.7</version>
     </dependency>
+    <dependency>
+      <groupId>com.madgag.spongycastle</groupId>
+      <artifactId>core</artifactId>
+      <version>1.52.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.madgag.spongycastle</groupId>
+      <artifactId>pkix</artifactId>
+      <version>1.52.0.0</version>
+    </dependency>
+
 
   </dependencies>
   <reporting>
