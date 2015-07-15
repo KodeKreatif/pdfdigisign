@@ -33,17 +33,12 @@ import java.security.cert.CertPathValidator;
 import java.security.cert.PKIXCertPathValidatorResult;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Enumeration;
 import java.util.List;
-import java.util.TimeZone;
 import java.util.Vector;
 import java.util.HashSet;
 import java.util.Set;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
-
 
 import org.apache.pdfbox.cos.COSArray;
 import org.apache.pdfbox.cos.COSDictionary;
@@ -107,9 +102,6 @@ public class Verificator {
       } catch (Exception e) {
         if (e.getCause() != null  && e.getCause().getClass().getName().equals("java.security.cert.CertificateRevokedException")) {
           CertificateRevokedException r = (CertificateRevokedException) e.getCause();
-          TimeZone tz = TimeZone.getTimeZone("UTC");
-          DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mmZ");
-          df.setTimeZone(tz);
 
           certInfo.revoked = true;
           certInfo.revocationPrincipal = r.getAuthorityName().toString();
@@ -151,7 +143,7 @@ public class Verificator {
           caCert = storeCert;
         } catch (Exception e) {
           certInfo.trusted = false;
-          certInfo.verificationFailure = e.getMessage();
+          certInfo.problems.add(e.getMessage());
         }
         finally {
           break;
@@ -197,10 +189,6 @@ public class Verificator {
       final CertPath certPath = factory.generateCertPath(certStream, "PKCS7");
       Collection<? extends Certificate> certs = certPath.getCertificates();
 
-      TimeZone tz = TimeZone.getTimeZone("UTC");
-      DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mmZ");
-      df.setTimeZone(tz);
-
       for (Certificate c: certs) {
         X509Certificate x509 = (X509Certificate) c;
         CertInfo certInfo = new CertInfo();
@@ -221,7 +209,7 @@ public class Verificator {
           certInfo.verified = true;
         } catch (Exception e) {
           certInfo.verified = false;
-          certInfo.verificationFailure = e.getMessage();
+          certInfo.problems.add(e.getMessage());
         }
 
         certInfo.notBefore = x509.getNotBefore();
@@ -229,11 +217,13 @@ public class Verificator {
 
         try {
           x509.checkValidity();
-          certInfo.state = "valid";
+          certInfo.valid = true;
         } catch (CertificateExpiredException e) {
-          certInfo.state = "expired";
+          certInfo.problems.add("expired");
+          certInfo.valid = false;
         } catch (CertificateNotYetValidException e) {
-          certInfo.state = "notYet";
+          certInfo.problems.add("not-yet-valid");
+          certInfo.valid = false;
         }
         info.certs.add(certInfo);
       }

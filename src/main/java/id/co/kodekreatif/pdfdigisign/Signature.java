@@ -64,9 +64,6 @@ public class Signature implements SignatureInterface {
   {
     File document = new File(path);
 
-    if (!(document != null && document.exists()))
-      new RuntimeException("");
-
     File outputDocument = new File(outputPath + "/" + document.getName() + ".signed.pdf");
     FileOutputStream fos = new FileOutputStream(outputDocument);
 
@@ -82,8 +79,6 @@ public class Signature implements SignatureInterface {
     doc.addSignature(signature, this);
     doc.saveIncremental(fos);
     doc.close();
-
-    File resultDocument = new File(path);
 
     return;
   }
