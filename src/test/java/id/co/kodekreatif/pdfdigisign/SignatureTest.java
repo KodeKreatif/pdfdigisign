@@ -154,5 +154,25 @@ public class SignatureTest {
     }
   }
 
+  @Test
+  public void testOneWithVisualSignature() {
+    SignStore store = new SignStore();
+    Signature signature = new Signature(store.chain, store.privateKey);
+    try {
+      FileInputStream image = new FileInputStream("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/signature.png");
+      signature.setVisual(image, 1, (float)30.0, (float)30.0, (float)130.0, (float)100.0);
+      signature.signWithAlias("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/no-signature.pdf", "/tmp", "alias", "name", "location", "reason");
+      Verificator v = new Verificator("/tmp/no-signature.pdf.signed.pdf");
+      PDFDocumentInfo i = v.validate();
+      assertEquals("Signature must exist", i.signatures.size(), 1);
+      assertEquals("Cert must be trusted", ((i.signatures.get(0)).certs.get(0)).trusted, false);
+      assertEquals("Cert must be verified", ((i.signatures.get(0)).certs.get(0)).verified, true);
+
+    } catch(Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+ 
 
 }

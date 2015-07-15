@@ -47,6 +47,9 @@ import org.apache.pdfbox.cos.COSString;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.PDSignature;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.SignatureInterface;
+import org.apache.pdfbox.pdmodel.interactive.digitalsignature.SignatureOptions;
+import org.apache.pdfbox.pdmodel.interactive.digitalsignature.visible.PDVisibleSigProperties;
+import org.apache.pdfbox.pdmodel.interactive.digitalsignature.visible.PDVisibleSignDesigner;
 
 public class Signature implements SignatureInterface {
 
@@ -54,10 +57,23 @@ public class Signature implements SignatureInterface {
 
   private PrivateKey privKey;
   Certificate[] chain;
+  InputStream imageStream = null;
+  int visualPage = -1;
+  float visualX, visualY;
+  float visualHeight, visualWidth;
 
   public Signature(final Certificate[] chain, PrivateKey key) {
     this.chain = chain;
     privKey = key;
+  }
+
+  public void setVisual(InputStream stream, int page, float x, float y, float height, float width) {
+    imageStream = stream;
+    visualPage = page;
+    visualX = x;
+    visualY = y;
+    visualHeight = height;
+    visualWidth = width;
   }
 
   public void signWithAlias(final String path, final String outputPath, final String alias, final String name, final String location, final String reason) throws IOException, InterruptedException 
@@ -76,11 +92,41 @@ public class Signature implements SignatureInterface {
     signature.setLocation(location);
     signature.setReason(reason);
     signature.setSignDate(Calendar.getInstance());
-    doc.addSignature(signature, this);
-    doc.saveIncremental(fos);
-    doc.close();
 
-    return;
+    if (imageStream != null) {
+      PDVisibleSignDesigner visibleSig = new PDVisibleSignDesigner(doc, imageStream, visualPage);
+      visibleSig
+        .xAxis(visualX)
+        .yAxis(visualY)
+        .height(visualHeight)
+        .width(visualWidth)
+        .signatureFieldName("signature");
+
+      PDVisibleSigProperties signatureProperties = new PDVisibleSigProperties();
+
+      signatureProperties
+        .preferredSize(0)
+        .page(visualPage)
+        .visualSignEnabled(true)
+        .setPdVisibleSignature(visibleSig)
+        .buildSignature();
+      
+      SignatureOptions options = null;
+      try {
+        options = new SignatureOptions();
+        options.setVisualSignature(signatureProperties);
+        doc.addSignature(signature, this, options);
+        doc.saveIncremental(fos);
+      }  
+      finally
+      {
+        doc.close();
+      }
+    } else {
+      doc.addSignature(signature, this);
+      doc.saveIncremental(fos);
+      doc.close();
+    }
   }
 
 
