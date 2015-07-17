@@ -51,6 +51,9 @@ import org.apache.pdfbox.pdmodel.interactive.digitalsignature.SignatureOptions;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.visible.PDVisibleSigProperties;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.visible.PDVisibleSignDesigner;
 
+/**
+ * Signs a PDF file with a digital signature
+ */
 public class Signature implements SignatureInterface {
 
   private static BouncyCastleProvider provider = new BouncyCastleProvider();
@@ -62,11 +65,27 @@ public class Signature implements SignatureInterface {
   float visualX, visualY;
   float visualHeight, visualWidth;
 
+  /**
+   * Constructor
+   *
+   * @param chain The certificate chain used to sign the PDF file
+   * @param key The PrivateKey used to sign the PDF file
+   */
   public Signature(final Certificate[] chain, PrivateKey key) {
     this.chain = chain;
     privKey = key;
   }
 
+  /**
+   * Set visual presentation of the signature
+   *
+   * @param stream The InputStream of an image file (ie. a PNG file stream)
+   * @param page The page the presentation would be embedded in the file
+   * @param x The location of the presentation within the page in x-axis
+   * @param y The location of the presentation within the page in y-axis
+   * @param height The height of the presentation
+   * @param width The width of the presentation
+   */
   public void setVisual(InputStream stream, int page, float x, float y, float height, float width) {
     imageStream = stream;
     visualPage = page;
@@ -76,7 +95,16 @@ public class Signature implements SignatureInterface {
     visualWidth = width;
   }
 
-  public void signWithAlias(final String path, final String outputPath, final String alias, final String name, final String location, final String reason) throws IOException, InterruptedException 
+  /**
+   * Signs the PDF file
+   *
+   * @param path The path to the PDF file
+   * @param outputPath The directory where the output file would be saved
+   * @param name The name of the person making the signature
+   * @param location The place/location where the signing took place
+   * @param reason The reason why the file was signed
+   */
+  public void sign(final String path, final String outputPath, final String name, final String location, final String reason) throws IOException, InterruptedException 
   {
     File document = new File(path);
 
@@ -130,6 +158,7 @@ public class Signature implements SignatureInterface {
   }
 
 
+  // Internal function called by PDFBox during signing
   @Override
   public byte[] sign(InputStream content) throws IOException 
   {

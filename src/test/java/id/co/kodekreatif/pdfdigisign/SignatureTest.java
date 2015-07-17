@@ -80,7 +80,7 @@ public class SignatureTest {
     SignStore store = new SignStore();
     Signature signature = new Signature(store.chain, store.privateKey);
     try {
-      signature.signWithAlias("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/no-signature.pdf", "/tmp", "alias", "name", "location", "reason");
+      signature.sign("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/no-signature.pdf", "/tmp", "name", "location", "reason");
       Verificator v = new Verificator("/tmp/no-signature.pdf.signed.pdf");
       PDFDocumentInfo i = v.validate();
       assertEquals("Signature must exist", i.signatures.size(), 1);
@@ -99,7 +99,7 @@ public class SignatureTest {
     store.setTrusted();
     Signature signature = new Signature(store.chain, store.privateKey);
     try {
-      signature.signWithAlias("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/no-signature.pdf", "/tmp", "alias", "name", "location", "reason");
+      signature.sign("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/no-signature.pdf", "/tmp", "name", "location", "reason");
       Verificator v = new Verificator("/tmp/no-signature.pdf.signed.pdf");
       v.setKeyStore(store.store);
       PDFDocumentInfo i = v.validate();
@@ -119,7 +119,7 @@ public class SignatureTest {
     SignStore store = new SignStore(startDate);
     Signature signature = new Signature(store.chain, store.privateKey);
     try {
-      signature.signWithAlias("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/no-signature.pdf", "/tmp", "alias", "name", "location", "reason");
+      signature.sign("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/no-signature.pdf", "/tmp", "name", "location", "reason");
       Verificator v = new Verificator("/tmp/no-signature.pdf.signed.pdf");
       PDFDocumentInfo i = v.validate();
       assertEquals("Signature must exist", i.signatures.size(), 1);
@@ -140,7 +140,7 @@ public class SignatureTest {
     SignStore store = new SignStore(startDate);
     Signature signature = new Signature(store.chain, store.privateKey);
     try {
-      signature.signWithAlias("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/no-signature.pdf", "/tmp", "alias", "name", "location", "reason");
+      signature.sign("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/no-signature.pdf", "/tmp", "name", "location", "reason");
       Verificator v = new Verificator("/tmp/no-signature.pdf.signed.pdf");
       PDFDocumentInfo i = v.validate();
       assertEquals("Signature must exist", i.signatures.size(), 1);
@@ -161,7 +161,7 @@ public class SignatureTest {
     try {
       FileInputStream image = new FileInputStream("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/signature.png");
       signature.setVisual(image, 1, (float)30.0, (float)30.0, (float)130.0, (float)100.0);
-      signature.signWithAlias("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/no-signature.pdf", "/tmp", "alias", "name", "location", "reason");
+      signature.sign("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/no-signature.pdf", "/tmp", "name", "location", "reason");
       Verificator v = new Verificator("/tmp/no-signature.pdf.signed.pdf");
       PDFDocumentInfo i = v.validate();
       assertEquals("Signature must exist", i.signatures.size(), 1);
