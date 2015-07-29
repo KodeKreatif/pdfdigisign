@@ -4,6 +4,7 @@ import id.co.kodekreatif.pdfdigisign.Signature;
 import java.io.IOException;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.ByteArrayInputStream;
 import java.security.cert.CertificateFactory;
 import java.security.KeyFactory;
 import java.security.KeyStore;
@@ -160,6 +161,28 @@ public class SignatureTest {
     Signature signature = new Signature(store.chain, store.privateKey);
     try {
       FileInputStream image = new FileInputStream("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/signature.png");
+      signature.setVisual(image, 1, (float)0.0, (float)0.0, (float)600.0, (float)100.0);
+      signature.sign("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/no-signature.pdf", "/tmp", "name", "location", "reason");
+      Verificator v = new Verificator("/tmp/no-signature.pdf.signed.pdf");
+      PDFDocumentInfo i = v.validate();
+      assertEquals("Signature must exist", i.signatures.size(), 1);
+      assertEquals("Cert must be trusted", ((i.signatures.get(0)).certs.get(0)).trusted, false);
+      assertEquals("Cert must be verified", ((i.signatures.get(0)).certs.get(0)).verified, true);
+
+    } catch(Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+   @Test
+  public void testOneWithVisualSignatureWithByteArray() {
+    SignStore store = new SignStore();
+    Signature signature = new Signature(store.chain, store.privateKey);
+    try {
+      FileInputStream imageStream = new FileInputStream("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/signature.png");
+      byte[] byteArray = new byte[100000];
+      imageStream.read(byteArray);
+      ByteArrayInputStream image = new ByteArrayInputStream(byteArray);
       signature.setVisual(image, 1, (float)30.0, (float)30.0, (float)130.0, (float)100.0);
       signature.sign("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/no-signature.pdf", "/tmp", "name", "location", "reason");
       Verificator v = new Verificator("/tmp/no-signature.pdf.signed.pdf");
@@ -173,6 +196,6 @@ public class SignatureTest {
     }
   }
 
- 
+
 
 }
