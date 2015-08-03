@@ -196,6 +196,25 @@ public class SignatureTest {
     }
   }
 
+  @Test
+  public void testThreePageWithVisualSignature() {
+    SignStore store = new SignStore();
+    Signature signature = new Signature(store.chain, store.privateKey);
+    try {
+      FileInputStream image = new FileInputStream("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/signature.png");
+      signature.setVisual(image, 3, 100.0f, 190.0f, 300.0f, 120.0f);
+      signature.sign("./src/test/java/id/co/kodekreatif/pdfdigisign/assets/3-page.pdf", "/tmp", "name", "location", "reason");
+      Verificator v = new Verificator("/tmp/3-page.pdf.signed.pdf");
+      PDFDocumentInfo i = v.validate();
+      assertEquals("Signature must exist", i.signatures.size(), 1);
+      assertEquals("Cert must be trusted", ((i.signatures.get(0)).certs.get(0)).trusted, false);
+      assertEquals("Cert must be verified", ((i.signatures.get(0)).certs.get(0)).verified, true);
+
+    } catch(Exception e) {
+      e.printStackTrace();
+    }
+  }
+
 
 
 }
