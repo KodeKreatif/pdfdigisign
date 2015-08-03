@@ -86,7 +86,7 @@ public class Signature implements SignatureInterface {
    * @param height The height of the presentation
    * @param width The width of the presentation
    */
-  public void setVisual(InputStream stream, int page, float x, float y, float height, float width) {
+  public void setVisual(InputStream stream, int page, float x, float y, float width, float height) {
     imageStream = stream;
     visualPage = page;
     visualX = x;
