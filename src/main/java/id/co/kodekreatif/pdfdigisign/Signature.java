@@ -143,6 +143,7 @@ public class Signature implements SignatureInterface {
       try {
         options = new SignatureOptions();
         options.setVisualSignature(signatureProperties);
+        options.setPage(visualPage);
         doc.addSignature(signature, this, options);
         doc.saveIncremental(fos);
       }  
