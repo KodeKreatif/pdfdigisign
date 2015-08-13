@@ -107,6 +107,9 @@ public class Verificator {
           certInfo.revocationPrincipal = r.getAuthorityName().toString();
           certInfo.revocationDate = r.getRevocationDate();
           certInfo.revocationReason = r.getRevocationReason().toString();
+        } else {
+          certInfo.verified = false;
+          certInfo.problems.add("Revocation state could not be determined.");
         }
       }
     } catch (Exception e) {
@@ -205,8 +208,8 @@ public class Verificator {
             certInfo.selfSigned = false;
           }
 
-          certInfo = checkKeyStore(keyStore, x509, certInfo);
           certInfo.verified = true;
+          certInfo = checkKeyStore(keyStore, x509, certInfo);
         } catch (Exception e) {
           certInfo.verified = false;
           certInfo.problems.add(e.getMessage());
