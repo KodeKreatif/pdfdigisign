@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.lang.InterruptedException;
 
 import java.security.PrivateKey;
+import java.security.Security;
 import java.security.cert.CertStore;
 import java.security.cert.Certificate;
 import java.security.cert.CertPath;
@@ -96,6 +97,8 @@ public class Verificator {
       trusted.add(anchor);
 
       PKIXParameters params = new PKIXParameters(trusted);
+      params.setRevocationEnabled(true);
+      Security.setProperty("ocsp.enable", "true");
       CertPathValidator validator = CertPathValidator.getInstance("PKIX");
       try {
         PKIXCertPathValidatorResult result = (PKIXCertPathValidatorResult) validator.validate(path, params);
